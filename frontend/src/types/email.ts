@@ -11,3 +11,11 @@ export interface GeneratedEmailData {
     subject : string;
     body: string;
 }
+
+export type allowedActions = "shorten" | "expand" | "formal" | "friendly" | "grammar"
+
+export interface RewriteEmailRequest {
+    subject: string;
+    body: string;
+    action: allowedActions;
+}

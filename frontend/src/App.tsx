@@ -6,52 +6,110 @@ import LoadingIndicator from "./components/LoadingIndicator";
 import ErrorMessage from "./components/ErrorMessage";
 
 import type {
+  allowedActions,
   EmailFormData,
   GeneratedEmailData,
 } from "./types/email";
+import { generateEmail, rewriteEmail } from "./services/emailApi";
+import { RewriteActionsButton } from "./components/RewriteActionButton";
+import { RewrittenEmailPreview } from "./components/RewrittenEmailPreview";
+import { emailTemplates, type EmailTemplate } from "./data/emailTemplates";
+import { TemplateSelector } from "./components/TemplateSelector";
 
 function App() {
   const [generatedEmail, setGeneratedEmail] =
     useState<GeneratedEmailData | null>(null);
 
-  const [isLoading, setIsLoading] =
-    useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [error, setError] =
-    useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleGenerate = (
+  const [rewrittenEmail, setRewrittenEmail] = useState<GeneratedEmailData | null>(null);
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [formData, setFormData] = useState<EmailFormData>({
+    purpose: '',
+    recipient: '',
+    context: '',
+    tone: 'Professional',
+    language: 'English',
+    length: 'Short'
+  });
+
+
+  const handleTemplateSelect = (
+    template: EmailTemplate
+  ) => {
+    setFormData((current) => ({
+      ...current,
+      ...template.values,
+    }));
+  };
+
+  const handleAcceptRewrittenEmail = () => {
+    if (!rewrittenEmail) {
+      return;
+    }
+    setGeneratedEmail(rewrittenEmail);
+    setRewrittenEmail(null);
+  }
+
+  const handleRejectRewrittenEmail = () => {
+    setRewrittenEmail(null);
+  }
+
+  const handleRewrite = async (action: allowedActions) => {
+    if (!generatedEmail) {
+      return
+    }
+
+    setError(null);
+    setIsRewriting(true);
+    try {
+      const result = await rewriteEmail({
+        subject: generatedEmail.subject,
+        body: generatedEmail.body,
+        action,
+      })
+      setRewrittenEmail(result)
+
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Unable to rewrite email.");
+      }
+    } finally {
+      setIsRewriting(false);
+    }
+  }
+
+  const handleGenerate = async (
     formData: EmailFormData
   ) => {
     console.log("Form data:", formData);
 
     setError(null);
+    setRewrittenEmail(null);
     setGeneratedEmail(null);
     setIsLoading(true);
 
-    setTimeout(() => {
-      const fakeEmail: GeneratedEmailData = {
-        subject:
-          "Application for Junior AI Engineer",
-        body: `Dear Hiring Manager,
 
-I am writing to express my interest in the Junior AI Engineer position.
-
-My background in artificial intelligence and software development has allowed me to develop strong technical and problem-solving skills.
-
-I would be pleased to discuss my application further.
-
-Best regards,
-Ayoub`,
-      };
-
-      setGeneratedEmail(fakeEmail);
+    try {
+      const result = await generateEmail(formData);
+      setGeneratedEmail(result)
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("An unexpected error occurred.");
+      }
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 py-12 px-4">
+    <main className="min-h-screen bg-gray-100 py-12 px-4" >
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold">
@@ -63,9 +121,20 @@ Ayoub`,
           </p>
         </div>
 
+
+
+
         <div className="bg-white rounded-xl p-6 shadow-sm mb-8">
+          <TemplateSelector
+            templates={emailTemplates}
+            onSelect={handleTemplateSelect}
+          />
+          
           <EmailForm
+            formData={formData}
+            onChange={setFormData}
             onGenerate={handleGenerate}
+            isLoading={isLoading}
           />
         </div>
 
@@ -76,12 +145,27 @@ Ayoub`,
         )}
 
         {generatedEmail && (
-          <GeneratedEmail
-            email={generatedEmail}
+          <>
+            <GeneratedEmail
+              email={generatedEmail}
+            />
+            <RewriteActionsButton
+              onRewrite={handleRewrite}
+              isLoading={isRewriting}
+            />
+          </>
+        )}
+
+        {generatedEmail && rewrittenEmail && (
+          <RewrittenEmailPreview
+            original={generatedEmail}
+            rewritten={rewrittenEmail}
+            onAccept={handleAcceptRewrittenEmail}
+            onReject={handleRejectRewrittenEmail}
           />
         )}
       </div>
-    </main>
+    </main >
   );
 }
 
