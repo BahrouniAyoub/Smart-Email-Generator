@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import EmailForm from "./components/EmailForm";
 import GeneratedEmail from "./components/GeneratedEmail";
@@ -8,13 +8,15 @@ import ErrorMessage from "./components/ErrorMessage";
 import type {
   allowedActions,
   EmailFormData,
+  EmailHistoryItem,
   GeneratedEmailData,
 } from "./types/email";
-import { generateEmail, rewriteEmail } from "./services/emailApi";
+import { deleteEmail, generateEmail, getEmails, rewriteEmail } from "./services/emailApi";
 import { RewriteActionsButton } from "./components/RewriteActionButton";
 import { RewrittenEmailPreview } from "./components/RewrittenEmailPreview";
 import { emailTemplates, type EmailTemplate } from "./data/emailTemplates";
 import { TemplateSelector } from "./components/TemplateSelector";
+import EmailHistory from "./components/EmailHistory";
 
 function App() {
   const [generatedEmail, setGeneratedEmail] =
@@ -34,7 +36,31 @@ function App() {
     language: 'English',
     length: 'Short'
   });
+  const [emailHistory, setEmailHistory] = useState<EmailHistoryItem[]>([])
 
+
+  const loadEmails = async () => {
+    try{
+      const emails = await getEmails()
+      setEmailHistory(emails)
+    }catch(error){
+      console.error(error)
+    }
+  }
+
+  useEffect(() => {
+    loadEmails()
+  }, [])
+
+
+  const handleDelete = async (id: number) => {
+    try{
+      await deleteEmail(id)
+      setEmailHistory((current) => current.filter((email) => email.id !== id))
+    } catch(error) {
+      console.error(error);
+    }
+  }
 
   const handleTemplateSelect = (
     template: EmailTemplate
@@ -97,6 +123,7 @@ function App() {
     try {
       const result = await generateEmail(formData);
       setGeneratedEmail(result)
+      await loadEmails()
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -136,6 +163,8 @@ function App() {
             onGenerate={handleGenerate}
             isLoading={isLoading}
           />
+
+          <EmailHistory emails={emailHistory} onDelete={handleDelete} />
         </div>
 
         {isLoading && <LoadingIndicator />}

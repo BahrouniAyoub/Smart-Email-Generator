@@ -7,6 +7,7 @@ import type {
 
 import { buildEmailPrompt, buildRewritePrompt } from "../prompts/emailPrompt";
 import { callLLM } from "./aiServices";
+import { prisma } from "../lib/prisma";
 
 
 function parseGeneratedEmail(
@@ -30,6 +31,35 @@ function parseGeneratedEmail(
   };
 }
 
+export async function getUserEmails(userId: number) {
+  const emails = await prisma.email.findMany({
+            where: {
+                userId,
+            },
+            orderBy: {
+                createdAt: "desc"
+            }
+        });
+  return emails
+}
+
+export async function getUserEmailById(id: number) {
+  const email = await prisma.email.findUnique({
+    where: {
+      id,
+    }
+  })
+
+  return email
+}
+
+export async function deleteEmailById(id: number) {
+  return await prisma.email.delete({
+    where: {
+      id
+    }
+  })
+}
 
 export async function generateEmailWithAi(
   data: EmailGenerateRequest
@@ -45,30 +75,25 @@ export async function generateEmailWithAi(
       role: "user",
       content: prompt,
     }
-  ]); 
+  ]);
 
-  return parseGeneratedEmail(result);
-}
+  const generatedEmail = parseGeneratedEmail(result);
 
+  const savedEmail = await prisma.email.create({
+    data: {
+      subject: generatedEmail.subject,
+      body: generatedEmail.body,
+      purpose: data.purpose,
+      recipient: data.recipient,
+      tone: data.tone,
+      language: data.language,
+      length: data.length,
 
-export function generateFakeEmail(
-  data: EmailGenerateRequest
-): GeneratedEmail {
-  return {
-    subject: `Regarding: ${data.purpose}`,
-    body: `Hello ${data.recipient},
+      userId: 2
+    }
+  })
 
-This is a fake ${data.tone.toLowerCase()} email.
-
-Context:
-${data.context}
-
-Language: ${data.language}
-Length: ${data.length}
-
-Best regards,
-Ayoub`,
-  };
+  return savedEmail;
 }
 
 

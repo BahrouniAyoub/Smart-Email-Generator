@@ -19,3 +19,16 @@ export interface RewriteEmailRequest {
     body: string;
     action: allowedActions;
 }
+
+
+export interface EmailHistoryItem {
+    id: number;
+    subject: string;
+    body: string;
+    purpose: string;
+    recipient: string;
+    tone: string;
+    language: string;
+    length: string;
+    createdAt: Date;
+}
