@@ -4,11 +4,13 @@ import type {
   RewriteEmailRequest,
 } from "../types/email";
 
+import {
+  buildEmailPrompt,
+  buildRewritePrompt,
+} from "../prompts/emailPrompt";
 
-import { buildEmailPrompt, buildRewritePrompt } from "../prompts/emailPrompt";
 import { callLLM } from "./aiServices";
 import { prisma } from "../lib/prisma";
-
 
 function parseGeneratedEmail(
   response: string
@@ -31,83 +33,117 @@ function parseGeneratedEmail(
   };
 }
 
-export async function getUserEmails(userId: number) {
-  const emails = await prisma.email.findMany({
-            where: {
-                userId,
-            },
-            orderBy: {
-                createdAt: "desc"
-            }
-        });
-  return emails
+export async function getUserEmails(
+  userId: number
+) {
+  return prisma.email.findMany({
+    where: {
+      userId,
+    },
+
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 }
 
-export async function getUserEmailById(id: number) {
-  const email = await prisma.email.findUnique({
+export async function getUserEmailById(
+  id: number,
+  userId: number
+) {
+  return prisma.email.findFirst({
     where: {
       id,
-    }
-  })
-
-  return email
+      userId,
+    },
+  });
 }
 
-export async function deleteEmailById(id: number) {
-  return await prisma.email.delete({
+export async function deleteEmailById(
+  id: number,
+  userId: number
+) {
+  return prisma.email.deleteMany({
     where: {
-      id
-    }
-  })
+      id,
+      userId,
+    },
+  });
 }
 
 export async function generateEmailWithAi(
-  data: EmailGenerateRequest
+  data: EmailGenerateRequest,
+  userId: number
 ): Promise<GeneratedEmail> {
-  const prompt = buildEmailPrompt(data);
+  const prompt =
+    buildEmailPrompt(data);
 
   const result = await callLLM([
     {
       role: "system",
-      content: "You are a helpful assistant that writes professional emails.",
+      content:
+        "You are a helpful assistant that writes professional emails.",
     },
     {
       role: "user",
       content: prompt,
-    }
+    },
   ]);
 
-  const generatedEmail = parseGeneratedEmail(result);
+  const generatedEmail =
+    parseGeneratedEmail(result);
 
-  const savedEmail = await prisma.email.create({
-    data: {
-      subject: generatedEmail.subject,
-      body: generatedEmail.body,
-      purpose: data.purpose,
-      recipient: data.recipient,
-      tone: data.tone,
-      language: data.language,
-      length: data.length,
+  const savedEmail =
+    await prisma.email.create({
+      data: {
+        subject:
+          generatedEmail.subject,
 
-      userId: 2
-    }
-  })
+        body:
+          generatedEmail.body,
+
+        purpose:
+          data.purpose,
+
+        recipient:
+          data.recipient,
+
+        tone:
+          data.tone,
+
+        language:
+          data.language,
+
+        length:
+          data.length,
+
+        userId,
+      },
+    });
 
   return savedEmail;
 }
 
+export async function rewriteEmailWithAi(
+  data: RewriteEmailRequest
+): Promise<GeneratedEmail> {
+  const prompt =
+    buildRewritePrompt(data);
 
-export async function rewriteEmailWithAi(data: RewriteEmailRequest): Promise<GeneratedEmail> {
-  const prompt = buildRewritePrompt(data);
-  const response = await callLLM([
-    {
-      role: "system",
-      content: "You are a helpful assistant that rewrites emails.",
-    },
-    {
-      role: "user",
-      content: prompt,
-    }
-  ]);
-  return JSON.parse(response) as GeneratedEmail;
+  const response =
+    await callLLM([
+      {
+        role: "system",
+        content:
+          "You are a helpful assistant that rewrites emails.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ]);
+
+  return JSON.parse(
+    response
+  ) as GeneratedEmail;
 }

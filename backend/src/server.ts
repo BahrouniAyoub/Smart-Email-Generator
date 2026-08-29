@@ -1,6 +1,7 @@
 import express from "express";
 import "dotenv/config";
 import emailRoutes from "./routes/emailRoutes";
+import authRoutes from "./routes/authRoutes"
 import cors from "cors"
 
 const app = express()
@@ -19,6 +20,7 @@ app.get("/", (req,res) => {
 })
 
 app.use("/api/emails", emailRoutes)
+app.use("/api/auth", authRoutes)
 
 const PORT = 3000
 app.listen(PORT, () => {
