@@ -1,28 +1,33 @@
 import { useState } from "react";
 
-interface CopyButonProps {
-    text: string;
+interface CopyButtonProps {
+  text: string;
 }
 
-function CopyButton({ text }: CopyButonProps) {
-    const [copied, setCopied] = useState(false);
+export function CopyButton({
+  text,
+}: CopyButtonProps) {
+  const [copied, setCopied] =
+    useState(false);
 
-    const handleCopy = async () => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => {
-            setCopied(false);
-        }, 2000);
-    }
-    return (
-        <button
-            onClick={handleCopy}
-            className="border px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors duration-300"
-        >
-            {copied ? "Copied!" : "Copy to Clipboard"}
-        </button>
-    )
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(
+      text
+    );
+
+    setCopied(true);
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 1500);
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
+    >
+      {copied ? "Copied!" : "Copy"}
+    </button>
+  );
 }
-
-
-export default CopyButton;

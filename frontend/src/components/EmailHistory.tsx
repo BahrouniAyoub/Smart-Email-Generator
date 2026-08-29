@@ -11,6 +11,21 @@ function EmailHistory({
   emails,
   onDelete,
 }: EmailHistoryProps) {
+
+  const handleDelete = (
+    id: number
+  ) => {
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this email?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    onDelete(id);
+  };
   if (emails.length === 0) {
     return (
       <p className="text-gray-500">
@@ -45,8 +60,8 @@ function EmailHistory({
           </p>
 
           <button
-            onClick={() => onDelete(email.id)}
-            className="mt-3 text-red-600"
+            onClick={() => handleDelete(email.id)}
+            className="mt-3 cursor-pointer text-red-600"
           >
             Delete
           </button>

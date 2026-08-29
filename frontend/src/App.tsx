@@ -1,121 +1,173 @@
 import { useEffect, useState } from "react";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
-import EmailForm from "./components/EmailForm";
-import GeneratedEmail from "./components/GeneratedEmail";
-import LoadingIndicator from "./components/LoadingIndicator";
 import ErrorMessage from "./components/ErrorMessage";
-
-import type {
-  allowedActions,
-  EmailFormData,
-  EmailHistoryItem,
-  GeneratedEmailData,
-} from "./types/email";
-import { deleteEmail, generateEmail, getEmails, rewriteEmail } from "./services/emailApi";
-import { RewriteActionsButton } from "./components/RewriteActionButton";
-import { RewrittenEmailPreview } from "./components/RewrittenEmailPreview";
-import { emailTemplates, type EmailTemplate } from "./data/emailTemplates";
-import { TemplateSelector } from "./components/TemplateSelector";
-import EmailHistory from "./components/EmailHistory";
-import { type AuthUser, type loginData, type registerData } from "./types/auth";
-import { loginUser, registerUser } from "./services/authApi";
 import { LoginForm } from "./components/LoginForm";
 import { RegisterForm } from "./components/RegisterForm";
+import { AppLayout } from "./components/AppLayout";
+
+import type {
+  EmailHistoryItem,
+} from "./types/email";
+
+import type {
+  AuthUser,
+  loginData,
+  registerData,
+} from "./types/auth";
+
+import {
+  deleteEmail,
+  getEmails,
+} from "./services/emailApi";
+
+import {
+  loginUser,
+  registerUser,
+} from "./services/authApi";
+
+import { DashboardPage } from "./pages/DashboardPage";
+import { GeneratorPage } from "./pages/GeneratorPage";
+import { HistoryPage } from "./pages/HistoryPage";
 
 function App() {
-  const [generatedEmail, setGeneratedEmail] = useState<GeneratedEmailData | null>(null);
+  const [error, setError] =
+    useState<string | null>(null);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [emailHistory, setEmailHistory] =
+    useState<EmailHistoryItem[]>([]);
 
-  const [error, setError] = useState<string | null>(null);
+  const [token, setToken] =
+    useState<string | null>(
+      localStorage.getItem("token")
+    );
 
-  const [rewrittenEmail, setRewrittenEmail] = useState<GeneratedEmailData | null>(null);
-  const [isRewriting, setIsRewriting] = useState(false);
-  const [formData, setFormData] = useState<EmailFormData>({
-    purpose: '',
-    recipient: '',
-    context: '',
-    tone: 'Professional',
-    language: 'English',
-    length: 'Short'
-  });
-  const [emailHistory, setEmailHistory] = useState<EmailHistoryItem[]>([])
+  const [user, setUser] =
+    useState<AuthUser | null>(() => {
+      const storedUser =
+        localStorage.getItem("user");
 
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"))
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [authLoading, setAuthLoading] = useState(false)
-  const [authMode, setAuthMode] = useState<"login" | "register">("login")
+      return storedUser
+        ? JSON.parse(storedUser)
+        : null;
+    });
 
+  const [authLoading, setAuthLoading] =
+    useState(false);
 
+  const [authMode, setAuthMode] =
+    useState<"login" | "register">(
+      "login"
+    );
 
   const loadEmails = async () => {
     if (!token) {
-      return
+      return;
     }
+
     try {
-      const emails = await getEmails(token)
-      setEmailHistory(emails)
+      const emails =
+        await getEmails(token);
+
+      setEmailHistory(emails);
     } catch (error) {
-      console.error(error)
+      console.error(
+        "Failed to load emails:",
+        error
+      );
     }
-  }
+  };
 
   useEffect(() => {
     if (token) {
-      loadEmails()
+      loadEmails();
     }
-  }, [token])
+  }, [token]);
 
-
-  const handleLogin = async (data: loginData) => {
+  const handleLogin = async (
+    data: loginData
+  ) => {
     setError(null);
     setAuthLoading(true);
 
     try {
-      const result = await loginUser(data)
-      setToken(result.token)
-      setUser(result.user)
-      localStorage.setItem("token", result.token)
+      const result =
+        await loginUser(data);
 
+      setToken(result.token);
+      setUser(result.user);
+
+      localStorage.setItem(
+        "token",
+        result.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(result.user)
+      );
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message)
-
+        setError(error.message);
+      } else {
+        setError(
+          "Unable to log in."
+        );
       }
     } finally {
-      setAuthLoading(false)
+      setAuthLoading(false);
     }
+  };
 
-  }
-
-  const handleRegister = async (data: registerData) => {
+  const handleRegister = async (
+    data: registerData
+  ) => {
     setError(null);
     setAuthLoading(true);
 
     try {
-      const result = await registerUser(data)
-      setToken(result.token)
-      setUser(result.user)
-      localStorage.setItem("token", result.token)
+      const result =
+        await registerUser(data);
 
+      setToken(result.token);
+      setUser(result.user);
+
+      localStorage.setItem(
+        "token",
+        result.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(result.user)
+      );
     } catch (error) {
       if (error instanceof Error) {
-        setError(error.message)
-
+        setError(error.message);
+      } else {
+        setError(
+          "Unable to register."
+        );
       }
     } finally {
-      setAuthLoading(false)
+      setAuthLoading(false);
     }
-
-  }
+  };
 
   const handleLogout = () => {
-    setToken(null)
-    setUser(null)
-    setEmailHistory([])
-    setGeneratedEmail(null)
-    localStorage.removeItem("token")
-  }
+    setToken(null);
+    setUser(null);
+    setEmailHistory([]);
+    setError(null);
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  };
+
   const handleDeleteEmail = async (
     id: number
   ) => {
@@ -128,122 +180,43 @@ function App() {
 
       setEmailHistory((current) =>
         current.filter(
-          (email) => email.id !== id
+          (email) =>
+            email.id !== id
         )
       );
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
-      }
-    }
-  };
-
-  const handleTemplateSelect = (
-    template: EmailTemplate
-  ) => {
-    setFormData((current) => ({
-      ...current,
-      ...template.values,
-    }));
-  };
-
-  const handleAcceptRewrittenEmail = () => {
-    if (!rewrittenEmail) {
-      return;
-    }
-    setGeneratedEmail(rewrittenEmail);
-    setRewrittenEmail(null);
-  }
-
-  const handleRejectRewrittenEmail = () => {
-    setRewrittenEmail(null);
-  }
-
-  const handleRewrite = async (action: allowedActions) => {
-    if (!generatedEmail) {
-      return
-    }
-
-    setError(null);
-    setIsRewriting(true);
-    try {
-      if (!token) {
-        return;
-      }
-
-      const result = await rewriteEmail(
-        {
-          subject: generatedEmail.subject,
-          body: generatedEmail.body,
-          action,
-        },
-        token
-      );
-      setRewrittenEmail(result)
-
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
       } else {
-        setError("Unable to rewrite email.");
+        setError(
+          "Unable to delete email."
+        );
       }
-    } finally {
-      setIsRewriting(false);
-    }
-  }
-
-  const handleGenerate = async (
-    formData: EmailFormData
-  ) => {
-    console.log("Form data:", formData);
-
-    setError(null);
-    setRewrittenEmail(null);
-    setGeneratedEmail(null);
-    setIsLoading(true);
-
-
-    try {
-      if (!token) {
-        return;
-      }
-
-      const result =
-        await generateEmail(formData, token);
-      setGeneratedEmail(result)
-      await loadEmails()
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("An unexpected error occurred.");
-      }
-    } finally {
-      setIsLoading(false);
     }
   };
-
 
   if (!token) {
     return (
-      <main className="min-h-screen bg-gray-100 py-12 px-4">
-        <div className="max-w-md mx-auto">
-          <div className="text-center mb-8">
+      <main className="flex min-h-screen bg-gray-100 px-4">
+        <div className="w-full max-w-md">
+          <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold">
               Smart Email Generator
             </h1>
 
-            <p className="text-gray-600 mt-3">
+            <p className="mt-3 text-gray-600">
               Write professional emails faster.
             </p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex gap-2 mb-6">
+          <div className="rounded-xl bg-white p-6 shadow-sm">
+            <div className="mb-6 flex gap-2">
               <button
                 type="button"
-                onClick={() => setAuthMode("login")}
-                className={`flex-1 py-2 rounded-lg ${authMode === "login"
+                onClick={() =>
+                  setAuthMode("login")
+                }
+                className={`flex-1 cursor-pointer rounded-lg py-2 ${authMode === "login"
                   ? "bg-black text-white"
                   : "bg-gray-100"
                   }`}
@@ -253,8 +226,10 @@ function App() {
 
               <button
                 type="button"
-                onClick={() => setAuthMode("register")}
-                className={`flex-1 py-2 rounded-lg ${authMode === "register"
+                onClick={() =>
+                  setAuthMode("register")
+                }
+                className={`flex-1 cursor-pointer rounded-lg py-2 ${authMode === "register"
                   ? "bg-black text-white"
                   : "bg-gray-100"
                   }`}
@@ -265,19 +240,27 @@ function App() {
 
             {error && (
               <div className="mb-4">
-                <ErrorMessage message={error} />
+                <ErrorMessage
+                  message={error}
+                />
               </div>
             )}
 
             {authMode === "login" ? (
               <LoginForm
                 onLogin={handleLogin}
-                isLoading={authLoading}
+                isLoading={
+                  authLoading
+                }
               />
             ) : (
               <RegisterForm
-                onRegister={handleRegister}
-                isLoading={authLoading}
+                onRegister={
+                  handleRegister
+                }
+                isLoading={
+                  authLoading
+                }
               />
             )}
           </div>
@@ -287,84 +270,71 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 py-12 px-4" >
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <p className="text-sm text-gray-500">
-              Signed in as
-            </p>
-
-            <p className="font-medium">
-              {user?.name || user?.email}
-            </p>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="border px-4 py-2 rounded-lg"
-          >
-            Logout
-          </button>
-        </div>
-        
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold">
-            Smart Email Generator
-          </h1>
-
-          <p className="text-gray-600 mt-3">
-            Write professional emails faster.
-          </p>
-        </div>
-
-
-
-
-        <div className="bg-white rounded-xl p-6 shadow-sm mb-8">
-          <TemplateSelector
-            templates={emailTemplates}
-            onSelect={handleTemplateSelect}
+    <AppLayout
+      userName={
+        user?.name ||
+        user?.email
+      }
+      onLogout={handleLogout}
+    >
+      {error && (
+        <div className="mb-6">
+          <ErrorMessage
+            message={error}
           />
-
-          <EmailForm
-            formData={formData}
-            onChange={setFormData}
-            onGenerate={handleGenerate}
-            isLoading={isLoading}
-          />
-
-          <EmailHistory emails={emailHistory} onDelete={handleDeleteEmail} />
         </div>
+      )}
 
-        {isLoading && <LoadingIndicator />}
-
-        {error && (
-          <ErrorMessage message={error} />
-        )}
-
-        {generatedEmail && (
-          <>
-            <GeneratedEmail
-              email={generatedEmail}
+      <Routes>
+        <Route
+          path="/dashboard"
+          element={
+            <DashboardPage
+              user={user}
+              emails={
+                emailHistory
+              }
             />
-            <RewriteActionsButton
-              onRewrite={handleRewrite}
-              isLoading={isRewriting}
-            />
-          </>
-        )}
+          }
+        />
 
-        {generatedEmail && rewrittenEmail && (
-          <RewrittenEmailPreview
-            original={generatedEmail}
-            rewritten={rewrittenEmail}
-            onAccept={handleAcceptRewrittenEmail}
-            onReject={handleRejectRewrittenEmail}
-          />
-        )}
-      </div>
-    </main >
+        <Route
+          path="/generate"
+          element={
+            <GeneratorPage
+              token={token}
+              onEmailGenerated={
+                loadEmails
+              }
+            />
+          }
+        />
+
+        <Route
+          path="/history"
+          element={
+            <HistoryPage
+              emails={
+                emailHistory
+              }
+              onDelete={
+                handleDeleteEmail
+              }
+            />
+          }
+        />
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
+        />
+      </Routes>
+    </AppLayout>
   );
 }
 

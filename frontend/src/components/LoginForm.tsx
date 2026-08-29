@@ -54,7 +54,7 @@ export function LoginForm({
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full bg-black text-white rounded-lg p-3 disabled:opacity-50"
+        className="w-full cursor-pointer bg-black text-white rounded-lg p-3 disabled:opacity-50"
       >
         {isLoading
           ? "Logging in..."

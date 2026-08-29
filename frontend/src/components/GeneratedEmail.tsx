@@ -1,5 +1,5 @@
 import type { GeneratedEmailData } from "../types/email";
-import CopyButton from "./CopyButton";
+import {CopyButton} from "./CopyButton";
 
 interface GeneratedEmailProps {
   email: GeneratedEmailData;

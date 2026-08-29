@@ -63,7 +63,7 @@ export function RegisterForm({ onRegister, isLoading }: RegisterFormProps) {
             <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-black text-white rounded-lg p-3"
+                className="w-full cursor-pointer bg-black text-white rounded-lg p-3"
             >
                 {isLoading
                     ? "Creating account..."
