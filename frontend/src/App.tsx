@@ -88,6 +88,26 @@ function App() {
     }
   }, [token]);
 
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setToken(null);
+      setUser(null);
+      setEmailHistory([]);
+    };
+
+    window.addEventListener(
+      "auth:unauthorized",
+      handleUnauthorized
+    );
+
+    return () => {
+      window.removeEventListener(
+        "auth:unauthorized",
+        handleUnauthorized
+      );
+    };
+  }, []);
+
   const handleLogin = async (
     data: loginData
   ) => {
@@ -197,7 +217,7 @@ function App() {
 
   if (!token) {
     return (
-      <main className="flex min-h-screen bg-gray-100 px-4">
+      <main className="flex min-h-screen items-center justify-center bg-gray-100 px-4">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center">
             <h1 className="text-4xl font-bold">

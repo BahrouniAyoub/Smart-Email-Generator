@@ -4,6 +4,7 @@ import type {
 } from "../types/email";
 
 import type { Response } from "express";
+import type { NextFunction } from "express";
 
 import {
   deleteEmailById,
@@ -14,6 +15,7 @@ import {
 } from "../services/emailService";
 
 import { ValidateEmailRequest } from "../utils/validateEmailRequest";
+import { AppError } from "../utils/AppError";
 
 import type {
   AuthenticatedRequest,
@@ -21,7 +23,8 @@ import type {
 
 export async function getEmail(
   req: AuthenticatedRequest,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) {
   try {
     const userId = req.user!.userId;
@@ -33,27 +36,23 @@ export async function getEmail(
       .status(200)
       .json(emails);
   } catch (error) {
-    console.error(
-      "Get emails error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Failed to load history.",
-    });
+    return next(error);
   }
 }
 
 export async function getEmailByIdController(
   req: AuthenticatedRequest,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) {
   const id = Number(req.params.id);
 
   if (isNaN(id)) {
-    return res.status(400).json({
-      error: "Invalid email id.",
-    });
+    return next(new AppError(
+      "Invalid email id.",
+      400,
+      "INVALID_EMAIL_ID"
+    ));
   }
 
   const userId = req.user!.userId;
@@ -66,36 +65,34 @@ export async function getEmailByIdController(
       );
 
     if (!email) {
-      return res.status(404).json({
-        error: "Email not found.",
-      });
+      return next(new AppError(
+        "Email not found.",
+        404,
+        "EMAIL_NOT_FOUND"
+      ));
     }
 
     return res
       .status(200)
       .json(email);
   } catch (error) {
-    console.error(
-      "Get email error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Failed to load email.",
-    });
+    return next(error);
   }
 }
 
 export async function deleteEmail(
   req: AuthenticatedRequest,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) {
   const id = Number(req.params.id);
 
   if (isNaN(id)) {
-    return res.status(400).json({
-      error: "Invalid email id.",
-    });
+    return next(new AppError(
+      "Invalid email id.",
+      400,
+      "INVALID_EMAIL_ID"
+    ));
   }
 
   const userId = req.user!.userId;
@@ -108,27 +105,23 @@ export async function deleteEmail(
       );
 
     if (result.count === 0) {
-      return res.status(404).json({
-        error: "Email not found.",
-      });
+      return next(new AppError(
+        "Email not found.",
+        404,
+        "EMAIL_NOT_FOUND"
+      ));
     }
 
     return res.status(204).send();
   } catch (error) {
-    console.error(
-      "Delete email error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Failed to delete email.",
-    });
+    return next(error);
   }
 }
 
 export async function generateEmail(
   req: AuthenticatedRequest,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) {
   const data =
     req.body as EmailGenerateRequest;
@@ -137,15 +130,19 @@ export async function generateEmail(
     ValidateEmailRequest(data);
 
   if (validationError) {
-    return res.status(400).json({
-      error: validationError,
-    });
+    return next(new AppError(
+      validationError,
+      400,
+      "INVALID_EMAIL_INPUT"
+    ));
   }
 
    if (!req.user) {
-    return res.status(401).json({
-      error: "Authentication required.",
-    });
+    return next(new AppError(
+      "Authentication required.",
+      401,
+      "AUTHENTICATION_REQUIRED"
+    ));
   }
 
   const userId = req.user!.userId;
@@ -161,20 +158,14 @@ export async function generateEmail(
       .status(200)
       .json(generatedEmail);
   } catch (error) {
-    console.error(
-      "Generate email error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Failed to generate email.",
-    });
+    return next(error);
   }
 }
 
 export async function rewriteEmail(
   req: AuthenticatedRequest,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) {
   const data =
     req.body as RewriteEmailRequest;
@@ -187,13 +178,6 @@ export async function rewriteEmail(
       .status(200)
       .json(rewrittenEmail);
   } catch (error) {
-    console.error(
-      "Rewrite email error:",
-      error
-    );
-
-    return res.status(500).json({
-      error: "Failed to rewrite email.",
-    });
+    return next(error);
   }
 }

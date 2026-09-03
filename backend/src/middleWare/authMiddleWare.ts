@@ -4,6 +4,8 @@ import type {
   Response,
 } from "express";
 import jwt from "jsonwebtoken";
+import { env } from "../config/env";
+import { AppError } from "../utils/AppError";
 
 interface JwtPayload {
   userId: number;
@@ -24,10 +26,11 @@ export function requireAuth(
     req.headers.authorization;
 
   if (!authHeader) {
-    return res.status(401).json({
-      error:
-        "Authentication required.",
-    });
+    return next(new AppError(
+      "Authentication required.",
+      401,
+      "AUTHENTICATION_REQUIRED"
+    ));
   }
 
   const [type, token] =
@@ -37,20 +40,20 @@ export function requireAuth(
     type !== "Bearer" ||
     !token
   ) {
-    return res.status(401).json({
-      error:
-        "Invalid authorization header.",
-    });
+    return next(new AppError(
+      "Invalid authorization header.",
+      401,
+      "INVALID_AUTHORIZATION_HEADER"
+    ));
   }
 
   const secret =
-    process.env.JWT_SECRET;
+    env.jwtSecret;
 
   if (!secret) {
-    return res.status(500).json({
-      error:
-        "JWT secret not configured.",
-    });
+    return next(new Error(
+      "JWT_SECRET is not configured"
+    ));
   }
 
   try {
@@ -70,9 +73,10 @@ export function requireAuth(
 
     next();
   } catch {
-    return res.status(401).json({
-      error:
-        "Invalid or expired token.",
-    });
+    return next(new AppError(
+      "Your session has expired. Please log in again.",
+      401,
+      "INVALID_OR_EXPIRED_TOKEN"
+    ));
   }
 }

@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { env } from "../config/env"
+import { AppError } from "../utils/AppError"
 
 export async function registerUser(name: string,email: string, password: string) {
     const existingUser = await prisma.user.findUnique({
@@ -10,7 +12,11 @@ export async function registerUser(name: string,email: string, password: string)
     })
 
     if(existingUser){
-        throw new Error('User already exists')
+        throw new AppError(
+            "User already exists.",
+            400,
+            "USER_ALREADY_EXISTS"
+        )
     }
 
     const hashedPassword = await bcrypt.hash(password, 12)
@@ -25,7 +31,7 @@ export async function registerUser(name: string,email: string, password: string)
 
     
     
-    const jwtSecret = process.env.JWT_SECRET
+    const jwtSecret = env.jwtSecret
     if(!jwtSecret){
         throw new Error("JWT_SECRET is not configured")
     }
@@ -40,6 +46,7 @@ export async function registerUser(name: string,email: string, password: string)
             expiresIn: "1d"
         }
     )
+    
 
 
     const {password: _, ...safeUser} = user
@@ -58,16 +65,24 @@ export async function loginUser(email: string, password: string) {
     })
 
     if(!user){
-        throw new Error("User not found !")
+        throw new AppError(
+            "Invalid email or password.",
+            401,
+            "INVALID_CREDENTIALS"
+        )
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
 
     if(!isPasswordValid){
-        throw new Error("Invalid password !")
+        throw new AppError(
+            "Invalid email or password.",
+            401,
+            "INVALID_CREDENTIALS"
+        )
     }
 
-    const jwtSecret = process.env.JWT_SECRET
+    const jwtSecret = env.jwtSecret
     if(!jwtSecret){
         throw new Error("JWT_SECRET is not configured")
     }

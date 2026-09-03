@@ -1,3 +1,5 @@
+import { env } from "../config/env";
+
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 const model = "openai/gpt-oss-20b"
@@ -11,7 +13,7 @@ interface GroqMessage {
 export async function callLLM(
   messages: GroqMessage[]
 ): Promise<string> {
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = env.groqApiKey;
 
   if (!apiKey) {
     throw new Error(
